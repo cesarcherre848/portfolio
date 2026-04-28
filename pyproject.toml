@@ -2,7 +2,7 @@
 name = "Portfolio"
 version = "0.1.0"
 description = ""
-authors = [{ name = "Cesar Cherre", email = "cesarcherre@gmail.com" }]
+authors = [{ name = "Cesar Cherre", email = "cesarcherre@gmail.com" }, { name = "Peter Sandoval", email = "pwsandoval@outlook.com" }]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
