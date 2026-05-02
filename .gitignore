@@ -3,8 +3,7 @@ databricks.yml
 .vscode/
 
 # Project specific
-# talia/files/data/
-# talia/files/models/
+app/data/
 
 # Python
 # Byte-compiled / optimized / DLL files
