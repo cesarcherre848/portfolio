@@ -3,6 +3,7 @@ import json
 import numpy as np
 from pathlib import Path
 from tensorflow.keras import layers as tfl
+from app.src.models.model_computing import ModelComputing
 
 
 def inspect_dataset(dataset, num_samples=1):
@@ -98,6 +99,7 @@ def main():
 
 
     config_model = {
+        "inputs_lags": 21,
         "inputs" : {
             "categorical": [
                 "ticker",
@@ -110,8 +112,26 @@ def main():
                 "yield_spread",
                 "vix_log_return"
             ]
+        },
+        "outputs": ["log_return"],
+        "base_model": "",
+        "hyperparameters_init": {
+            "lr" : 2e-3,
+        },
+        "split": {
+            "train": 0.9,
+            "val": 0.05,
+            "test" : 0.05
+        },
+        "models": {
+            "main_net": {
+                "hidden_block": ""
+            }
         }
     }
+
+    model_computing = ModelComputing(ds_tf=full_ds, config=config_model)
+    model_computing.generate_splits()
 
 if __name__ == "__main__":
     main()
