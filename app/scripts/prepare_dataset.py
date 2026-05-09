@@ -5,7 +5,6 @@ from pathlib import Path
 import json
 
 # --- CONFIGURACIÓN DEL CONTRATO DE DATOS ---
-# El orden aquí es SAGRADO para la Rama Temporal del modelo
 TEMP_FEATURES = [
     'log_return', 
     'volume_prc', 
@@ -14,9 +13,8 @@ TEMP_FEATURES = [
     'vix_log_return'
 ]
 STATIC_FEATURES = ['ticker', 'sector']
+TIME_COL = 'date' # Agregamos la referencia explícita a la columna de tiempo
 TARGET_COL = 'log_return'
-N_LAGS = 21
-BATCH_SIZE = 64
 
 def save_metadata(df, folder_path):
     """Guarda vocabularios y orden de columnas para asegurar consistencia."""
@@ -25,7 +23,6 @@ def save_metadata(df, folder_path):
     
     metadata = {
         "temp_features_order": TEMP_FEATURES,
-        "n_lags": N_LAGS,
         "target_col": TARGET_COL,
         "ticker_vocab": sorted(df['ticker'].unique().tolist()),
         "sector_vocab": sorted(df['sector'].unique().tolist())
@@ -35,43 +32,32 @@ def save_metadata(df, folder_path):
         json.dump(metadata, f, indent=4)
     print(f"✅ Metadatos guardados en {path}")
 
-def create_windowed_dataset(df):
-    """Transforma el DataFrame en cubos (lags) respetando los grupos por ticker."""
-    x_temp_all = []
-    x_ticker_all = []
-    x_sector_all = []
-    y_all = []
-
-    print("Generando ventanas temporales (cubos)...")
+def create_flat_dataset(df):
+    """Transforma el DataFrame en un Dataset tabular puro (fila por fila)."""
+    print("Mapeando columnas al formato tf.data.Dataset...")
     
-    # Agrupamos para evitar que el final de un ticker se mezcle con el inicio de otro
-    for ticker, group in df.groupby('ticker'):
-        # Forzamos el orden de las columnas para la rama temporal
-        temp_data = group[TEMP_FEATURES].values
-        ticker_vals = group['ticker'].values
-        sector_vals = group['sector'].values
-        targets = group[TARGET_COL].values
+    # 1. Aseguramos el orden estricto antes de extraer las matrices
+    df = df.sort_values(by=['ticker', TIME_COL])
+    
+    # 2. Extraemos las matrices usando vectorización
+    x_num = df[TEMP_FEATURES].values.astype('float32')
+    x_ticker = df['ticker'].values
+    x_sector = df['sector'].values
+    
+    # NUEVO: Extraemos la fecha y la convertimos a string para compatibilidad TF
+    x_date = df[TIME_COL].astype(str).values 
+    
+    y = df[TARGET_COL].values.astype('float32')
 
-        # Deslizamos la ventana
-        for i in range(N_LAGS, len(group)):
-            # Rama Temporal: Matriz [N_LAGS x 5]
-            x_temp_all.append(temp_data[i-N_LAGS:i])
-            
-            # Rama Estática: Strings individuales
-            x_ticker_all.append(ticker_vals[i])
-            x_sector_all.append(sector_vals[i])
-            
-            # Target: Log-return del día siguiente (t+1)
-            y_all.append(targets[i])
-
-    # Convertir a Tensores de TensorFlow
+    # 3. Convertimos a Tensores de TensorFlow, inyectando la fecha
     dataset = tf.data.Dataset.from_tensor_slices((
         {
-            "input_temporal": np.array(x_temp_all, dtype='float32'),
-            "ticker": np.array(x_ticker_all),
-            "sector": np.array(x_sector_all)
+            "input_numerical": x_num,
+            "ticker": x_ticker,
+            "sector": x_sector,
+            "date": x_date # Ahora la fecha viaja junto a cada muestra
         },
-        np.array(y_all, dtype='float32')
+        y
     ))
 
     return dataset
@@ -89,16 +75,15 @@ def main():
     # 2. Persistir metadatos (Orden de columnas e índices)
     save_metadata(df, "app/models/metadata")
 
-    # 3. Crear Dataset de Ventanas
-    full_ds = create_windowed_dataset(df)
+    # 3. Crear Dataset Plano (Sin lags)
+    raw_ds = create_flat_dataset(df)
 
-    # 4. Configurar para entrenamiento (Shuffle y Batch)
-    train_ds = full_ds.shuffle(10000).batch(BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
-
-    # 5. Persistir el Dataset de TF
-    save_path = "app/data/processed/tf_dataset"
-    tf.data.Dataset.save(train_ds, save_path)
-    print(f"🚀 Dataset de TensorFlow guardado exitosamente en: {save_path}")
+    # 4. Persistir el Dataset de TF (Sin batch ni shuffle)
+    save_path = "app/data/processed/tf_dataset_raw"
+    tf.data.Dataset.save(raw_ds, save_path)
+    
+    print(f"🚀 Dataset crudo de TensorFlow guardado exitosamente en: {save_path}")
+    print(f"Total de registros mapeados: {raw_ds.cardinality().numpy()}")
 
 if __name__ == "__main__":
     main()

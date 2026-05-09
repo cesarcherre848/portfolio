@@ -6,7 +6,6 @@
         "yield_spread",
         "vix_log_return"
     ],
-    "n_lags": 21,
     "target_col": "log_return",
     "ticker_vocab": [
         "AAPL",
