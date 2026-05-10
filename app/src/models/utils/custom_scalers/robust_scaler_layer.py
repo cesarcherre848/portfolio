@@ -26,6 +26,19 @@ class RobustScalerLayer(tf.keras.layers.Layer):
         super().build(input_shape)
 
     def adapt(self, data):
+        if isinstance(data, tf.data.Dataset):
+            # Consumimos el generador lazy
+            tensors = list(data)
+            
+            # Concatenamos según la estructura (batcheado vs unbatched)
+            if len(tensors[0].shape) == 1:
+                data = tf.stack(tensors, axis=0)
+            else:
+                data = tf.concat(tensors, axis=0)
+        
+        if not self.built:
+            self.build(data.shape)
+
         data = tf.cast(data, tf.float32)
         median = tfp.stats.percentile(data, 50.0, axis=0, interpolation='midpoint')
         q1 = tfp.stats.percentile(data, 25.0, axis=0, interpolation='midpoint')

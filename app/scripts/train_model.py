@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 from tensorflow.keras import layers as tfl
 from app.src.models.model_computing import ModelComputing
-
+from app.src.models.structs.config_model import ConfigModel
 
 
 def main():
@@ -24,7 +24,7 @@ def main():
     # Inspeccionar el dataset
     print(full_ds)
 
-    config_model = {
+    config_model_dict = {
         "inputs_lags": 21,
         "inputs" : {
             "categorical": [
@@ -39,6 +39,18 @@ def main():
                 "vix_log_return"
             ]
         },
+        "scalers": {
+            "RobustScalerLayer": {
+                "inputs" : [
+                    "log_return",
+                    "volume_prc",
+                    "delta_fed_rate",
+                    "yield_spread",
+                    "vix_log_return"
+                ],
+            }
+        },
+
         "outputs": ["log_return"],
         "base_model": "",
         "hyperparameters_init": {
@@ -56,8 +68,12 @@ def main():
         }
     }
 
+    config_model = ConfigModel.from_dict(config_model_dict)
+    #print(config_model)
+
     model_computing = ModelComputing(ds_tf=full_ds, config=config_model)
     model_computing.generate_splits()
+    model_computing.compute_scalers()
 
 if __name__ == "__main__":
     main()
