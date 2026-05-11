@@ -25,7 +25,7 @@ def main():
     print(full_ds)
 
     config_model_dict = {
-        "inputs_lags": 21,
+        "inputs_lags": 5,
         "inputs" : {
             "categorical": [
                 "ticker",
@@ -55,6 +55,7 @@ def main():
         "base_model": "",
         "hyperparameters_init": {
             "lr" : 2e-3,
+            "batch_size": 64
         },
         "split": {
             "train": 0.9,
@@ -74,6 +75,10 @@ def main():
     model_computing = ModelComputing(ds_tf=full_ds, config=config_model)
     model_computing.generate_splits()
     model_computing.compute_scalers()
+    model_computing.prepare_datasets()
+    
+    # Inspeccionar muestras de un ticker específico para validar consistencia y ver las fechas
+    model_computing.inspect_ready_samples(ds_type="train", num_samples=2, ticker="AAPL")
 
 if __name__ == "__main__":
     main()

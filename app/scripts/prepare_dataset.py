@@ -47,18 +47,13 @@ def create_flat_dataset(df):
     # NUEVO: Extraemos la fecha y la convertimos a string para compatibilidad TF
     x_date = df[TIME_COL].astype(str).values 
     
-    y = df[TARGET_COL].values.astype('float32')
-
     # 3. Convertimos a Tensores de TensorFlow, inyectando la fecha
-    dataset = tf.data.Dataset.from_tensor_slices((
-        {
-            "input_numerical": x_num,
-            "ticker": x_ticker,
-            "sector": x_sector,
-            "date": x_date # Ahora la fecha viaja junto a cada muestra
-        },
-        y
-    ))
+    dataset = tf.data.Dataset.from_tensor_slices({
+        "numerical": x_num,
+        "ticker": x_ticker,
+        "sector": x_sector,
+        "date": x_date # Ahora la fecha viaja junto a cada muestra
+    })
 
     return dataset
 

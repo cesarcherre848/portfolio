@@ -17,6 +17,7 @@ class SplitStruct:
 @dataclass
 class HyperparametersStruct:
     lr: float
+    batch_size: int = 32
 
 @dataclass
 class ScalersStruct:
