@@ -26,6 +26,7 @@ def main():
 
     config_model_dict = {
         "inputs_lags": 5,
+        "outputs_horizons": 1,
         "inputs" : {
             "categorical": [
                 "ticker",
@@ -78,7 +79,7 @@ def main():
     model_computing.prepare_datasets()
     
     # Inspeccionar muestras de un ticker específico para validar consistencia y ver las fechas
-    model_computing.inspect_ready_samples(ds_type="train", num_samples=2, ticker="AAPL")
+    model_computing.inspect_ready_samples(ds_type="train", num_samples=10, ticker="AAPL")
 
 if __name__ == "__main__":
     main()

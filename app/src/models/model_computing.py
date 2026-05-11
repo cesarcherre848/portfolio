@@ -118,6 +118,7 @@ class ModelComputing:
         generación de X, Y y creación de batches.
         """
         lags = self.config.inputs_lags
+        horizons = self.config.outputs_horizons
         batch_size = self.config.hyperparameters_init.batch_size
         num_features = len(self.config.inputs.numerical)
 
@@ -135,15 +136,13 @@ class ModelComputing:
             # Concatenamos padding + datos reales
             full_group_ds = padding_ds.concatenate(group_ds)
 
-            # 2. Ventaneo: lags + 1 (el +1 es para el target Y)
-            windowed_ds = full_group_ds.window(size=lags + 1, shift=1, drop_remainder=True)
+            # 2. Ventaneo: lags + horizons
+            windowed_ds = full_group_ds.window(size=lags + horizons, shift=1, drop_remainder=True)
 
-            # 3. Convertir cada ventana (que es un dict de datasets) en un batch (tensor)
-            # Usamos Dataset.zip(w) porque w es un diccionario de datasets
-            return windowed_ds.flat_map(lambda w: tf.data.Dataset.zip(w).batch(lags + 1))
+            # 3. Convertir cada ventana en un batch (tensor)
+            return windowed_ds.flat_map(lambda w: tf.data.Dataset.zip(w).batch(lags + horizons))
 
-        # Agrupamos por ticker. key_func requiere int64, usamos un hash.
-        # Al estar los datos ya ordenados por ticker, group_by_window procesará uno por uno eficientemente.
+        # Agrupamos por ticker.
         ds = ds.group_by_window(
             key_func=lambda x: tf.strings.to_hash_bucket_fast(x['ticker'], num_buckets=20000),
             reduce_func=create_windows,
@@ -152,17 +151,19 @@ class ModelComputing:
 
         def split_xy(window):
             # X: los primeros 'lags' elementos
-            # Y: el valor de 'log_return' del último elemento (índice 'lags')
+            # Y: los siguientes 'horizons' elementos para la variable objetivo
             log_return_idx = self.name_to_idx.get("log_return", 0)
 
             x_numerical = window["numerical"][:lags]
-            y = window["numerical"][lags, log_return_idx]
+            
+            # Extraemos el vector de targets (y tendrá forma [horizons])
+            y = window["numerical"][lags : lags + horizons, log_return_idx]
 
             features = {
                 "numerical": x_numerical,
-                "ticker": window["ticker"][-1], # Tomamos el ticker del registro objetivo (Y)
+                "ticker": window["ticker"][-1], # Ticker de la fecha final (horizonte k)
                 "sector": window["sector"][-1],
-                "date": window["date"][-1]      # Preservamos la fecha del objetivo
+                "date": window["date"][-1]      # Fecha del último horizonte
             }
 
             return features, y
@@ -170,10 +171,29 @@ class ModelComputing:
         # Mapeamos a X, Y
         ds = ds.map(split_xy, num_parallel_calls=tf.data.AUTOTUNE)
 
+        # Limpieza de NaNs (lags iniciales y posibles huecos)
+        ds = self.remove_nan_samples(ds)
+
         # Generamos los batches finales
         ds = ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
         return ds
+
+    def remove_nan_samples(self, ds: tf.data.Dataset):
+        """
+        Elimina las muestras que contienen NaNs en las features numéricas (X) 
+        o en cualquier punto del horizonte del target (Y).
+        """
+        def filter_func(features, y):
+            # X: numerical features shape [lags, num_features]
+            x_has_nan = tf.reduce_any(tf.math.is_nan(features["numerical"]))
+            # Y: target values shape [horizons]
+            y_has_nan = tf.reduce_any(tf.math.is_nan(y))
+            
+            # Retornar True si NO hay NaNs en ninguno de los dos
+            return tf.logical_not(tf.logical_or(x_has_nan, y_has_nan))
+
+        return ds.filter(filter_func)
 
     def prepare_datasets(self):
         """
@@ -235,10 +255,13 @@ class ModelComputing:
                 print(f"  X (secuencia completa de {lags_full.shape[0]} lags):")
                 for idx, lag in enumerate(lags_full):
                     print(f"    Lag {idx:2d}: {lag}")
-                print(f"  Y (target log_return): {target[i].numpy():.6f}")
                 
-                if np.isnan(target[i].numpy()):
-                    print("  ⚠️ Nota: El target es NaN (inicio de serie)")
+                # Target vector
+                y_vec = target[i].numpy()
+                print(f"  Y (target vector, horizons={y_vec.shape[0]}): {y_vec}")
+                
+                if np.isnan(y_vec).any():
+                    print("  ⚠️ Nota: El target contiene NaN")
                 
                 found += 1
         

@@ -43,6 +43,7 @@ class ScalersStruct:
 @dataclass
 class ConfigModel:
     inputs_lags: int
+    outputs_horizons: int
     inputs: InputsStruct
     scalers: Dict[str, ScalersStruct]
     outputs: list[str]
@@ -51,13 +52,11 @@ class ConfigModel:
     split: SplitStruct
     models: Dict[str, Any]
 
-
-    
-
     @classmethod
     def from_dict(cls, data: dict):
         return cls(
             inputs_lags=data["inputs_lags"],
+            outputs_horizons=data.get("outputs_horizons", 1),
             inputs=InputsStruct(**data["inputs"]),
             scalers=ScalersStruct.parse_scalers(data.get("scalers", {})),
             outputs=data["outputs"],
