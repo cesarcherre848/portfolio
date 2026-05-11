@@ -13,8 +13,10 @@ El núcleo del sistema es un modelo de aprendizaje profundo que procesa múltipl
 
 ### 1. Procesamiento de Datos (Pipeline)
 *   **Ingesta:** Captura automatizada de datos de mercado (OHLCV) y fundamentales a través de `yfinance` y `fredapi`.
-*   **Estructuración:** Transformación de datos tabulares a tensores de alta dimensión (Parquet/TFRecord) con ventanas deslizantes de 21 días (*lags*).
-*   **Normalización:** Cálculo de retornos logarítmicos para asegurar la estacionariedad de las series temporales.
+*   **Estructuración:** Transformación de datos tabulares a tensores de alta dimensión con ventanas deslizantes (*lags*) configurables.
+*   **Horizonte Variable:** Soporte para predicción multi-paso mediante el parámetro `outputs_horizons`, permitiendo proyectar el retorno para *k* periodos futuros.
+*   **Integridad de Datos:** Limpieza automática de muestras con `NaN` en el pipeline de TensorFlow para evitar la divergencia de gradientes y asegurar un entrenamiento estable.
+*   **Normalización:** Cálculo de retornos logarítmicos y escalamiento robusto de variables numéricas.
 
 ### 2. Estructura del Modelo
 El modelo utiliza un enfoque de **Fusión Multimodal**:
