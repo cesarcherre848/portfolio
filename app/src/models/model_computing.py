@@ -105,6 +105,9 @@ class ModelComputing:
             target_ds_sampled = target_ds.shuffle(buffer_size=10000).take(sample_size)
             scaler_instance = scalers_executions[scaler_name](target_ds_sampled)
             scaler_config.instance = scaler_instance
+    
+    def prepare_datasets(self):
+        pass
 
             
 
