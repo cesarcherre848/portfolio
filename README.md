@@ -28,12 +28,30 @@ El modelo utiliza un enfoque de **Fusión Multimodal**:
 
 ```text
 ├── app/
-│   ├── data/             # Almacenamiento optimizado (Parquet & TF Datasets)
-│   ├── scripts/          # Pipeline: Carga -> Preprocesamiento -> Dataset -> Entrenamiento
-│   └── models/           # Checkpoints y metadatos del modelo
-├── requirements.txt      # Dependencias optimizadas para Python 3.13+
+│   ├── data/             # Datasets en Parquet y TFRecord
+│   ├── reports/          # EDA y visualización de resultados
+│   ├── scripts/          # Scripts de orquestación (Load -> Preprocess -> Train)
+│   ├── src/              # Lógica de Negocio y Arquitectura (Core)
+│   │   └── models/
+│   │       ├── structs/  # DTOs y validación de config (ConfigModel)
+│   │       ├── utils/    # Escaladores personalizados y capas de preprocesamiento
+│   │       ├── base_model.py      # Definición de arquitecturas base
+│   │       └── model_computing.py # Orquestador del pipeline de datos y entrenamiento
+│   └── models/           # Artefactos: Checkpoints, metadatos y pesos
+├── tests/                # Suite de pruebas unitarias
+├── GEMINI.md             # Políticas de desarrollo y Git
 └── README.md
 ```
+
+## 🏗️ Patrones de Diseño y Calidad
+
+El proyecto sigue principios de ingeniería de software para asegurar robustez y escalabilidad:
+
+*   **Configuración Tipada (DTO Pattern):** Uso de `ConfigModel` (dataclasses) para centralizar y validar todos los hiperparámetros y metadatos, evitando el paso de diccionarios planos.
+*   **Separación de Preocupaciones (SoC):** La lógica de transformación de datos (pipeline de TensorFlow) está aislada en `ModelComputing`, mientras que la definición del modelo reside en `src/models/`.
+*   **Extensibilidad de Escaladores:** Arquitectura de "Registry" para scalers personalizados (`custom_scalers`), permitiendo inyectar nuevas capas de preprocesamiento de forma modular.
+*   **Pipeline Determinado:** Uso estricto de `tf.data.Dataset` con hashing de tickers para asegurar consistencia temporal y reproducibilidad.
+
 
 ## ⚡ Ejecución Rápida
 
