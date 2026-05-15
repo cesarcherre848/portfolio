@@ -54,6 +54,7 @@ class ConfigModel:
     sequence_block_type: str = "basic_lstm"
     sequence_block_params: Dict[str, Any] = None
     mlp_block_params: Dict[str, Any] = None
+    categorical_dims: Dict[str, int] = None
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -72,7 +73,8 @@ class ConfigModel:
             models=data.get("models", {}),
             sequence_block_type=main_model_cfg.get("sequence_block_type", "basic_lstm"),
             sequence_block_params=main_model_cfg.get("sequence_block_params", {}),
-            mlp_block_params=main_model_cfg.get("mlp_block_params", {})
+            mlp_block_params=main_model_cfg.get("mlp_block_params", {}),
+            categorical_dims=main_model_cfg.get("categorical_dims", {"ticker": 16, "sector": 4})
         )
 
 

@@ -74,6 +74,10 @@ def main():
                 "mlp_block_params": {
                     "hidden_units": [64, 32],
                     "dropout": 0.2
+                },
+                "categorical_dims": {
+                    "ticker": 16,
+                    "sector": 4
                 }
             }
         }
@@ -113,7 +117,7 @@ def main():
     # 4. Resumen del modelo
     model.summary()
 
-    print("\n✅ Verificación completada con éxito. El MLPBlock ahora es completamente configurable.")
+    print("\n✅ Verificación completada con éxito. Las dimensiones de los embeddings ahora son configurables.")
 
 if __name__ == "__main__":
     main()

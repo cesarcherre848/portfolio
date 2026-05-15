@@ -14,7 +14,13 @@ class MainModel(tf.keras.Model):
         self.num_var_to_idx = {name: idx for idx, name in enumerate(config.inputs.numerical)}
         
         # Inicializamos los bloques modulares
-        self.cat_block = CategoricalBlock(ticker_vocab, sector_vocab)
+        # Extraemos las dimensiones de los embeddings desde la configuración
+        self.cat_block = CategoricalBlock(
+            ticker_vocab=ticker_vocab, 
+            sector_vocab=sector_vocab,
+            ticker_embedding_dim=config.categorical_dims.get("ticker", 16),
+            sector_embedding_dim=config.categorical_dims.get("sector", 4)
+        )
         
         # El NumericalBlock recibe la configuración del sequence_block desde el config
         self.num_block = NumericalBlock(
