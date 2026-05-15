@@ -64,22 +64,56 @@ def main():
             "test" : 0.05
         },
         "models": {
-            "main_net": {
-                "hidden_block": ""
+            "main_model": {
+                "sequence_block_type": "conv_stacked_lstm",
+                "sequence_block_params": {
+                    "filters": 64,
+                    "units": [128, 64],
+                    "dropout": 0.3
+                },
+                "mlp_block_params": {
+                    "hidden_units": [64, 32],
+                    "dropout": 0.2
+                }
             }
         }
     }
 
     config_model = ConfigModel.from_dict(config_model_dict)
-    #print(config_model)
 
     model_computing = ModelComputing(ds_tf=full_ds, config=config_model)
     model_computing.generate_splits()
     model_computing.compute_scalers()
     model_computing.prepare_datasets()
     
-    # Inspeccionar muestras de un ticker específico para validar consistencia y ver las fechas
-    model_computing.inspect_ready_samples(ds_type="train", num_samples=10, ticker="AAPL")
+    # --- VERIFICACIÓN DEL MODELO ---
+    print("\n--- Verificando MainModel ---")
+    
+    # 1. Instanciar el modelo a través de ModelComputing
+    model = model_computing.build_model(
+        ticker_vocab=metadata["ticker_vocab"],
+        sector_vocab=metadata["sector_vocab"]
+    )
+
+    # 2. Obtener un batch de ejemplo para construir el grafo y verificar formas
+    sample_batch = next(iter(model_computing.train_ds_ready))
+    features, targets = sample_batch
+
+    # 3. Forward pass de prueba
+    print(f"Feeding batch with shapes:")
+    for k, v in features.items():
+        print(f"  {k}: {v.shape}")
+    print(f"  Targets: {targets.shape}")
+
+    # En el MainModel.call ahora se aplican los scalers internamente
+    outputs = model(features, training=False)
+    
+    print(f"\nModel Output Shape: {outputs.shape}")
+    
+    # 4. Resumen del modelo
+    model.summary()
+
+    print("\n✅ Verificación completada con éxito. El MLPBlock ahora es completamente configurable.")
 
 if __name__ == "__main__":
     main()

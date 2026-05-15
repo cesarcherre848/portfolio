@@ -3,6 +3,7 @@ import numpy as np
 from typing import Dict, Any, Optional
 from app.src.models.structs.config_model import ConfigModel
 from app.src.models.utils.scalers import scalers_executions
+from app.src.models.main_model import MainModel
 
 
 class ModelComputing:
@@ -208,6 +209,18 @@ class ModelComputing:
         self.val_ds_ready = self.build_pipeline(self.val_ds)
         self.test_ds_ready = self.build_pipeline(self.test_ds)
         print("✅ Pipelines listos y guardados en atributos '_ready'.")
+
+    def build_model(self, ticker_vocab, sector_vocab):
+        """
+        Instancia y devuelve el MainModel configurado.
+        """
+        print("Construyendo MainModel desde ModelComputing...")
+        model = MainModel(
+            config=self.config,
+            ticker_vocab=ticker_vocab,
+            sector_vocab=sector_vocab
+        )
+        return model
 
     def inspect_ready_samples(self, ds_type: str = "train", num_samples: int = 1, ticker: Optional[str] = None):
         """

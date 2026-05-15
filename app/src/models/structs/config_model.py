@@ -51,9 +51,15 @@ class ConfigModel:
     hyperparameters_init: HyperparametersStruct
     split: SplitStruct
     models: Dict[str, Any]
+    sequence_block_type: str = "basic_lstm"
+    sequence_block_params: Dict[str, Any] = None
+    mlp_block_params: Dict[str, Any] = None
 
     @classmethod
     def from_dict(cls, data: dict):
+        # Extraer configuración específica del MainModel
+        main_model_cfg = data.get("models", {}).get("main_model", {})
+        
         return cls(
             inputs_lags=data["inputs_lags"],
             outputs_horizons=data.get("outputs_horizons", 1),
@@ -63,8 +69,12 @@ class ConfigModel:
             base_model=data.get("base_model", ""),
             hyperparameters_init=HyperparametersStruct(**data["hyperparameters_init"]),
             split=SplitStruct(**data["split"]),
-            models=data.get("models", {})
+            models=data.get("models", {}),
+            sequence_block_type=main_model_cfg.get("sequence_block_type", "basic_lstm"),
+            sequence_block_params=main_model_cfg.get("sequence_block_params", {}),
+            mlp_block_params=main_model_cfg.get("mlp_block_params", {})
         )
+
 
 
     def __str__(self):
