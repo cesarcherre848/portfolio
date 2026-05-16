@@ -3,9 +3,13 @@ from tensorflow.keras import layers as tfl
 
 class BasicLSTMBlock(tfl.Layer):
     """Arquitectura: LSTM -> Dropout"""
-    def __init__(self, units=64, dropout=0.2, **kwargs):
+    def __init__(self, units=64, dropout=0.2, l2_reg=0.01, **kwargs):
         super().__init__(**kwargs)
-        self.lstm = tfl.LSTM(units)
+        self.lstm = tfl.LSTM(
+            units, 
+            kernel_initializer="glorot_uniform",
+            kernel_regularizer=tf.keras.regularizers.l2(l2_reg)
+        )
         self.dropout = tfl.Dropout(dropout)
 
     def call(self, inputs, training=None):
@@ -14,10 +18,21 @@ class BasicLSTMBlock(tfl.Layer):
 
 class ConvLSTMBlock(tfl.Layer):
     """Arquitectura: Conv1D -> LSTM -> Dropout"""
-    def __init__(self, filters=32, kernel_size=3, units=64, dropout=0.2, **kwargs):
+    def __init__(self, filters=32, kernel_size=3, units=64, dropout=0.2, l2_reg=0.01, **kwargs):
         super().__init__(**kwargs)
-        self.conv = tfl.Conv1D(filters, kernel_size, activation='relu', padding='same')
-        self.lstm = tfl.LSTM(units)
+        self.conv = tfl.Conv1D(
+            filters, 
+            kernel_size, 
+            activation='relu', 
+            padding='same',
+            kernel_initializer="he_normal",
+            kernel_regularizer=tf.keras.regularizers.l2(l2_reg)
+        )
+        self.lstm = tfl.LSTM(
+            units, 
+            kernel_initializer="glorot_uniform",
+            kernel_regularizer=tf.keras.regularizers.l2(l2_reg)
+        )
         self.dropout = tfl.Dropout(dropout)
 
     def call(self, inputs, training=None):
@@ -27,11 +42,27 @@ class ConvLSTMBlock(tfl.Layer):
 
 class ConvStackedLSTMBlock(tfl.Layer):
     """Arquitectura: Conv1D -> LSTM -> LSTM -> Dropout"""
-    def __init__(self, filters=32, kernel_size=3, units=[64, 32], dropout=0.2, **kwargs):
+    def __init__(self, filters=32, kernel_size=3, units=[64, 32], dropout=0.2, l2_reg=0.01, **kwargs):
         super().__init__(**kwargs)
-        self.conv = tfl.Conv1D(filters, kernel_size, activation='relu', padding='same')
-        self.lstm1 = tfl.LSTM(units[0], return_sequences=True)
-        self.lstm2 = tfl.LSTM(units[1])
+        self.conv = tfl.Conv1D(
+            filters, 
+            kernel_size, 
+            activation='relu', 
+            padding='same',
+            kernel_initializer="he_normal",
+            kernel_regularizer=tf.keras.regularizers.l2(l2_reg)
+        )
+        self.lstm1 = tfl.LSTM(
+            units[0], 
+            return_sequences=True,
+            kernel_initializer="glorot_uniform",
+            kernel_regularizer=tf.keras.regularizers.l2(l2_reg)
+        )
+        self.lstm2 = tfl.LSTM(
+            units[1],
+            kernel_initializer="glorot_uniform",
+            kernel_regularizer=tf.keras.regularizers.l2(l2_reg)
+        )
         self.dropout = tfl.Dropout(dropout)
 
     def call(self, inputs, training=None):
@@ -42,12 +73,35 @@ class ConvStackedLSTMBlock(tfl.Layer):
 
 class DeepHybridBlock(tfl.Layer):
     """Arquitectura: Conv1D -> Conv1D -> LSTM -> LSTM -> Dropout"""
-    def __init__(self, filters=[32, 64], kernel_size=3, units=[64, 32], dropout=0.2, **kwargs):
+    def __init__(self, filters=[32, 64], kernel_size=3, units=[64, 32], dropout=0.2, l2_reg=0.01, **kwargs):
         super().__init__(**kwargs)
-        self.conv1 = tfl.Conv1D(filters[0], kernel_size, activation='relu', padding='same')
-        self.conv2 = tfl.Conv1D(filters[1], kernel_size, activation='relu', padding='same')
-        self.lstm1 = tfl.LSTM(units[0], return_sequences=True)
-        self.lstm2 = tfl.LSTM(units[1])
+        self.conv1 = tfl.Conv1D(
+            filters[0], 
+            kernel_size, 
+            activation='relu', 
+            padding='same',
+            kernel_initializer="he_normal",
+            kernel_regularizer=tf.keras.regularizers.l2(l2_reg)
+        )
+        self.conv2 = tfl.Conv1D(
+            filters[1], 
+            kernel_size, 
+            activation='relu', 
+            padding='same',
+            kernel_initializer="he_normal",
+            kernel_regularizer=tf.keras.regularizers.l2(l2_reg)
+        )
+        self.lstm1 = tfl.LSTM(
+            units[0], 
+            return_sequences=True,
+            kernel_initializer="glorot_uniform",
+            kernel_regularizer=tf.keras.regularizers.l2(l2_reg)
+        )
+        self.lstm2 = tfl.LSTM(
+            units[1],
+            kernel_initializer="glorot_uniform",
+            kernel_regularizer=tf.keras.regularizers.l2(l2_reg)
+        )
         self.dropout = tfl.Dropout(dropout)
 
     def call(self, inputs, training=None):

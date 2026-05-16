@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import datetime
 from typing import Dict, Any, Optional
 from app.src.models.structs.config_model import ConfigModel
 from app.src.models.utils.scalers import scalers_executions
@@ -208,6 +209,10 @@ class ModelComputing:
         self.train_ds_ready = self.build_pipeline(self.train_ds)
         self.val_ds_ready = self.build_pipeline(self.val_ds)
         self.test_ds_ready = self.build_pipeline(self.test_ds)
+
+
+        self.train_ds_ready = self.train_ds_ready.repeat()
+
         print("✅ Pipelines listos y guardados en atributos '_ready'.")
 
     def build_model(self, ticker_vocab, sector_vocab):
@@ -221,6 +226,57 @@ class ModelComputing:
             sector_vocab=sector_vocab
         )
         return model
+
+    def train(self, model: tf.keras.Model):
+        """
+        Entrena el modelo usando Huber Loss y Adam optimizer.
+        """
+        if self.train_ds_ready is None or self.val_ds_ready is None:
+            raise ValueError("❌ Datasets listos (_ready) no encontrados. Ejecuta prepare_datasets() primero.")
+
+        print(f"\n--- Iniciando entrenamiento con Huber Loss ---")
+        
+        # 1. Compilación
+        optimizer = tf.keras.optimizers.Adam(learning_rate=self.config.hyperparameters_init.lr)
+        loss = tf.keras.losses.Huber()
+        
+        model.compile(optimizer=optimizer, loss=loss, metrics=["mae", "mse"])
+
+        # 2. Callbacks
+        log_dir = f"app/data/logs/fit/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+        callbacks = [
+            # tf.keras.callbacks.EarlyStopping(
+            #     monitor="val_loss", 
+            #     patience=10, 
+            #     restore_best_weights=True,
+            #     verbose=1
+            # ),
+            # tf.keras.callbacks.ReduceLROnPlateau(
+            #     monitor="val_loss", 
+            #     factor=0.5, 
+            #     patience=5, 
+            #     min_lr=1e-6,
+            #     verbose=1
+            # ),
+            tf.keras.callbacks.TensorBoard(
+                log_dir=log_dir,
+                histogram_freq=1
+            )
+        ]
+
+        # 3. Entrenamiento
+        history = model.fit(
+            self.train_ds_ready,
+            validation_data=self.val_ds_ready,
+            epochs=self.config.hyperparameters_init.epochs,
+            steps_per_epoch=4096,
+            callbacks=callbacks,
+            verbose=1
+        )
+
+        print("\n✅ Entrenamiento completado.")
+        return history
 
     def inspect_ready_samples(self, ds_type: str = "train", num_samples: int = 1, ticker: Optional[str] = None):
         """
